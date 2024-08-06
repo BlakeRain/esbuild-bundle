@@ -1,0 +1,7 @@
+[package]
+name = "print-bundle"
+description = "A simple demonstration that prints the bundled output path"
+edition = "2021"
+
+[dependencies]
+esbuild-bundle = { path = "../.." }
