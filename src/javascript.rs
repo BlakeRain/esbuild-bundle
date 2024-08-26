@@ -112,14 +112,27 @@ pub(crate) fn process(input: TokenStream) -> TokenStream {
         bundle_path,
     } = syn::parse_macro_input!(input as JavascriptModule);
 
+    // Expand any environment variables in the entry point.
+    let entry_point: String = shellexpand::env(&entry_point)
+        .unwrap_or_else(|err| {
+            panic!("Failed to expand environment variables in entry point: {err}");
+        })
+        .into();
+
     // Load our configuration (if we have one)
     let config = Config::load();
 
     // Ascertain the path to where bundles are written.
     let bundle_path = bundle_path.or(config.bundle_path).unwrap_or_else(|| {
         panic!("No bundle path provided, and either no configuration found or configuration has no 'bundle_path'");
-
     });
+
+    // Expand any environment variables in the bundle path.
+    let bundle_path: String = shellexpand::env(&bundle_path)
+        .unwrap_or_else(|err| {
+            panic!("Failed to expand environment variables in bundle path: {err}");
+        })
+        .into();
 
     // The path to the bundles cache is under the bundles path, with the name '.bundles.json'.
     let bundles_path = format!("{bundle_path}/.bundles.json");
