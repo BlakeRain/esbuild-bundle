@@ -162,7 +162,7 @@ pub(crate) fn process(input: TokenStream) -> TokenStream {
     // Figure out where we're going to write the output. If we already have a bundle for the given
     // entry point then we can just reuse that. Otherwise we want to generate a new bundle
     // identifier (a random sequence of letters and numbers).
-    let output_path = if let Some(existing) = bundles.get(&entry_point) {
+    let output_name = if let Some(existing) = bundles.get(&entry_point) {
         existing.clone()
     } else {
         let output_name: String = rand::thread_rng()
@@ -171,10 +171,12 @@ pub(crate) fn process(input: TokenStream) -> TokenStream {
             .map(char::from)
             .collect();
 
-        let output_path = format!("{bundle_path}/{output_name}.js");
-        bundles.insert(entry_point.clone(), output_path.clone());
-        output_path
+        let output_name = format!("{output_name}.js");
+        bundles.insert(entry_point.clone(), output_name.clone());
+        output_name
     };
+
+    let output_path = format!("{bundle_path}/{output_name}");
 
     // Generate the JavaScript bundle using esbuild.
 
@@ -206,5 +208,5 @@ pub(crate) fn process(input: TokenStream) -> TokenStream {
         panic!("Failed to write bundles cache '{bundles_path:?}': {err:?}");
     }
 
-    quote! { #output_path }.into()
+    quote! { #output_name }.into()
 }
