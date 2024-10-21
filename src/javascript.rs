@@ -21,7 +21,7 @@ impl Default for EsbuildCommand {
 }
 
 impl EsbuildCommand {
-    fn build_command(&self, entry_point: &str, output_path: &str) -> Command {
+    fn build_command(&self, minified: bool, entry_point: &str, output_path: &str) -> Command {
         match self {
             Self::Npm { script } => {
                 let mut command = Command::new("npm");
@@ -35,8 +35,14 @@ impl EsbuildCommand {
                     .arg("esbuild")
                     .arg(entry_point)
                     .arg("--bundle")
-                    .arg("--minify")
                     .arg(format!("--outfile={output_path}"));
+
+                if minified {
+                    command.arg("--minify");
+                } else {
+                    command.arg("--sourcemap");
+                }
+
                 command
             }
 
@@ -46,8 +52,14 @@ impl EsbuildCommand {
                     .arg("esbuild")
                     .arg(entry_point)
                     .arg("--bundle")
-                    .arg("--minify")
                     .arg(format!("--outfile={output_path}"));
+
+                if minified {
+                    command.arg("--minify");
+                } else {
+                    command.arg("--sourcemap");
+                }
+
                 command
             }
         }
@@ -171,33 +183,34 @@ pub(crate) fn process(input: TokenStream) -> TokenStream {
             .map(char::from)
             .collect();
 
-        let output_name = format!("{output_name}.js");
         bundles.insert(entry_point.clone(), output_name.clone());
         output_name
     };
 
-    let output_path = format!("{bundle_path}/{output_name}");
+    // Generate the JavaScript bundles using esbuild.
+    let cmd = config.esbuild.unwrap_or_default();
+    for (minified, output_name) in [
+        (false, format!("{}.js", output_name)),
+        (true, format!("{}.min.js", output_name)),
+    ] {
+        let output_path = format!("{bundle_path}/{output_name}");
+        let output = match cmd
+            .build_command(minified, &entry_point, &output_path)
+            .output()
+        {
+            Ok(output) => output,
+            Err(err) => {
+                panic!("Failed to run esbuild: {err:?}");
+            }
+        };
 
-    // Generate the JavaScript bundle using esbuild.
-
-    let output = match config
-        .esbuild
-        .unwrap_or_default()
-        .build_command(&entry_point, &output_path)
-        .output()
-    {
-        Ok(output) => output,
-        Err(err) => {
-            panic!("Failed to run esbuild: {err:?}");
+        if !output.status.success() {
+            panic!(
+                "failed to run esbuild: {}\n{}",
+                std::str::from_utf8(&output.stderr).unwrap_or("unable to parse stderr as utf-8"),
+                std::str::from_utf8(&output.stdout).unwrap_or("unable to parse stdout as utf-8")
+            );
         }
-    };
-
-    if !output.status.success() {
-        panic!(
-            "failed to run esbuild: {}\n{}",
-            std::str::from_utf8(&output.stderr).unwrap_or("unable to parse stderr as utf-8"),
-            std::str::from_utf8(&output.stdout).unwrap_or("unable to parse stdout as utf-8")
-        );
     }
 
     // Write the changes to the bundles.json file.
