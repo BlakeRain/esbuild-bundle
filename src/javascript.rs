@@ -6,6 +6,24 @@ use rand::{distributions::Alphanumeric, Rng};
 use serde::Deserialize;
 use syn::{parse::Parse, Token};
 
+#[derive(Default)]
+struct EsbuildOptions {
+    format: Option<String>,
+    global_name: Option<String>,
+}
+
+impl EsbuildOptions {
+    fn add(&self, command: &mut Command) {
+        if let Some(format) = &self.format {
+            command.arg(format!("--format={format}"));
+        }
+
+        if let Some(global_name) = &self.global_name {
+            command.arg(format!("--global-name={global_name}"));
+        }
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 enum EsbuildCommand {
@@ -21,7 +39,13 @@ impl Default for EsbuildCommand {
 }
 
 impl EsbuildCommand {
-    fn build_command(&self, minified: bool, entry_point: &str, output_path: &str) -> Command {
+    fn build_command(
+        &self,
+        options: &EsbuildOptions,
+        minified: bool,
+        entry_point: &str,
+        output_path: &str,
+    ) -> Command {
         match self {
             Self::Npm { script } => {
                 let mut command = Command::new("npm");
@@ -31,34 +55,38 @@ impl EsbuildCommand {
 
             Self::Npx => {
                 let mut command = Command::new("npx");
-                command
-                    .arg("esbuild")
-                    .arg(entry_point)
-                    .arg("--bundle")
-                    .arg(format!("--outfile={output_path}"));
+                command.arg("esbuild");
+                options.add(&mut command);
 
                 if minified {
                     command.arg("--minify");
                 } else {
                     command.arg("--sourcemap");
                 }
+
+                command
+                    .arg("--bundle")
+                    .arg(format!("--outfile={output_path}"))
+                    .arg(entry_point);
 
                 command
             }
 
             Self::Yarn => {
                 let mut command = Command::new("yarn");
-                command
-                    .arg("esbuild")
-                    .arg(entry_point)
-                    .arg("--bundle")
-                    .arg(format!("--outfile={output_path}"));
+                command.arg("esbuild");
+                options.add(&mut command);
 
                 if minified {
                     command.arg("--minify");
                 } else {
                     command.arg("--sourcemap");
                 }
+
+                command
+                    .arg("--bundle")
+                    .arg(format!("--outfile={output_path}"))
+                    .arg(entry_point);
 
                 command
             }
@@ -99,6 +127,7 @@ impl Config {
 struct JavascriptModule {
     entry_point: String,
     bundle_path: Option<String>,
+    options: EsbuildOptions,
 }
 
 impl Parse for JavascriptModule {
@@ -110,9 +139,40 @@ impl Parse for JavascriptModule {
             bundle_path = Some(input.parse::<syn::LitStr>()?.value());
         }
 
+        let mut options = EsbuildOptions::default();
+
+        // Next we have a comma-separated list of parameters in the form 'foo=bar', where 'foo' is
+        // an identifier and 'bar' is a literal value. We then assign the value corresponding the
+        // key.
+
+        while !input.is_empty() {
+            input.parse::<Token![,]>()?;
+
+            let key: syn::Ident = input.parse()?;
+            input.parse::<Token![=]>()?;
+
+            match key.to_string().as_str() {
+                "format" => {
+                    options.format = Some(input.parse::<syn::LitStr>()?.value());
+                }
+
+                "global_name" => {
+                    options.global_name = Some(input.parse::<syn::LitStr>()?.value());
+                }
+
+                _ => {
+                    return Err(syn::Error::new(
+                        key.span(),
+                        format!("unexpected key '{}'", key),
+                    ));
+                }
+            }
+        }
+
         Ok(Self {
             entry_point,
             bundle_path,
+            options,
         })
     }
 }
@@ -122,6 +182,7 @@ pub(crate) fn process(input: TokenStream) -> TokenStream {
     let JavascriptModule {
         entry_point,
         bundle_path,
+        options,
     } = syn::parse_macro_input!(input as JavascriptModule);
 
     // Expand any environment variables in the entry point.
@@ -195,7 +256,7 @@ pub(crate) fn process(input: TokenStream) -> TokenStream {
     ] {
         let output_path = format!("{bundle_path}/{output_name}");
         let output = match cmd
-            .build_command(minified, &entry_point, &output_path)
+            .build_command(&options, minified, &entry_point, &output_path)
             .output()
         {
             Ok(output) => output,
