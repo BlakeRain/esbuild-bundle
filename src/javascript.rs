@@ -227,11 +227,6 @@ pub(crate) fn process(input: TokenStream) -> TokenStream {
         HashMap::new()
     };
 
-    // Make sure that the bundles directory exists.
-    if let Err(err) = std::fs::create_dir_all(&bundle_path) {
-        panic!("Failed to create bundles directory '{bundle_path:?}': {err:?}");
-    }
-
     // Figure out where we're going to write the output. If we already have a bundle for the given
     // entry point then we can just reuse that. Otherwise we want to generate a new bundle
     // identifier (a random sequence of letters and numbers).
