@@ -28,6 +28,7 @@ impl EsbuildOptions {
 #[serde(tag = "type", rename_all = "lowercase")]
 enum EsbuildCommand {
     Npm { script: String },
+    Pnpm { script: Option<String> },
     Npx,
     Yarn,
 }
@@ -51,6 +52,32 @@ impl EsbuildCommand {
                 let mut command = Command::new("npm");
                 command.arg(script).arg(entry_point).arg(output_path);
                 command
+            }
+
+            Self::Pnpm { script } => {
+                if let Some(script) = script {
+                    let mut command = Command::new("pnpm");
+                    command.arg(script).arg(entry_point).arg(output_path);
+                    command
+                } else {
+                    let mut command = Command::new("pnpm");
+                    command.arg("exec");
+                    command.arg("esbuild");
+                    options.add(&mut command);
+
+                    if minified {
+                        command.arg("--minify");
+                    } else {
+                        command.arg("--sourcemap");
+                    }
+
+                    command
+                        .arg("--bundle")
+                        .arg(format!("--outfile={output_path}"))
+                        .arg(entry_point);
+
+                    command
+                }
             }
 
             Self::Npx => {

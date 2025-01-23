@@ -5,6 +5,34 @@ All notable changes to this library will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/1.0.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2](https://github.com/BlakeRain/esbuild-bundle/compare/v0.3.1..v0.3.2) - 2025-01-23
+
+This is another small revision that adds support for running `pnpm exec` instead of `npx`. In
+addition, `pnpm` can be run with a script, similar to `npm`.
+
+Running `esbuild` via `pnpm exec` requires setting the `esbuild.type` to `pnpm`:
+
+```json
+{
+    "esbuild": {
+        "type": "pnpm",
+    }
+}
+```
+
+To run a script from the `scripts` section of a `package.json` using `pnpm` rather than `npm`, set
+the `esbuild.type` to `pnpm` and supply a `script` field:
+
+```json
+{
+    "esbuild": {
+        "type": "pnpm",
+        "script": "my_script"
+    }
+}
+```
+
+
 ## [0.3.1](https://github.com/BlakeRain/esbuild-bundle/compare/v0.3.0..v0.3.1) - 2024-10-22
 
 This is a small revision that stops the `javascript!` macro from creating the bundle directory

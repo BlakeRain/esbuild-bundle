@@ -90,6 +90,8 @@ values:
   is specified using the `script` property in the `esbuild` object. The script is passed two
   arguments: the path to the given entry-point (the JavaScript module) and the expected path to the
   output bundle file.
+- `"pnpm"` will use `pnpm` to either invoke `esbuild` via `pnpm exec esbuild` or it can be used to
+  run a script from the `scripts` section of a `package.json` file, similar to the `"npm"` option.
 
 [esbuild]: https://esbuild.github.io/
 [npx]: https://docs.npmjs.com/cli/v7/commands/npx
