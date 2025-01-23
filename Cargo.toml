@@ -1,6 +1,6 @@
 [package]
 name = "esbuild-bundle"
-version = "0.3.2"
+version = "0.3.3"
 description = "A proc-macro to bundle JavaScript files using esbuild."
 authors = ["Blake Rain <blake.rain@blakerain.com>"]
 homepage = "https://git.blakerain.com/BlakeRain/esbuild-bundle"

@@ -67,6 +67,21 @@ as follows:
 
 If the bundle path does not exist, it will be created.
 
+## Working Directory
+
+When executing, the working directory is usually to location of the `Cargo.toml` (after all, this is
+a Rust macro). However there may be times where this is not desirable. For example, in a Cargo
+workspace you might have the `package.json` in a sub-crate and therefore will need to run the
+`esbuild` command in that directory. This can be specified using the `working_dir` configuration.
+
+```json
+{
+    "working_dir": "${CARGO_MANIFEST_DIR}"
+}
+```
+
+As with the `bundle_path`, the `working_dir` can use environment variables for expansion.
+
 ## Esbuild Command
 
 Without any configuration, the macro assumes it can invoke `esbuild` by using [npx]: `npx esbuild`.

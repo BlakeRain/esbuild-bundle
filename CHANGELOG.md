@@ -5,6 +5,19 @@ All notable changes to this library will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/1.0.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3](https://github.com/BlakeRain/esbuild-bundle/compare/v0.3.2..v0.3.3) - 2025-01-23
+
+Another small change that adds a `working_dir` option to the configuration. This allows specifying
+the working directory in which the `esbuild` command is run. This can use macro expansion, which
+makes it easier to work with Cargo workspaces. For example, to set the working directory to the
+directory containing the `Cargo.toml` file, use the following configuration:
+
+```json
+{
+    "working_dir": "$CARGO_MANIFEST_DIR"
+}
+```
+
 ## [0.3.2](https://github.com/BlakeRain/esbuild-bundle/compare/v0.3.1..v0.3.2) - 2025-01-23
 
 This is another small revision that adds support for running `pnpm exec` instead of `npx`. In

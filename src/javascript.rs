@@ -124,6 +124,7 @@ impl EsbuildCommand {
 #[derive(Default, Deserialize)]
 struct Config {
     bundle_path: Option<String>,
+    working_dir: Option<String>,
     esbuild: Option<EsbuildCommand>,
 }
 
@@ -222,6 +223,24 @@ pub(crate) fn process(input: TokenStream) -> TokenStream {
     // Load our configuration (if we have one)
     let config = Config::load();
 
+    // Change to the working directory, if there is one.
+    let working_dir = if let Some(ref working_dir) = config.working_dir {
+        let working_dir: String = shellexpand::env(&working_dir)
+            .unwrap_or_else(|err| {
+                panic!("Failed to expand environment variables in working directory: {err}");
+            })
+            .into();
+
+        working_dir
+    } else {
+        std::env::current_dir()
+            .unwrap_or_else(|err| {
+                panic!("Failed to get current directory: {err}");
+            })
+            .to_string_lossy()
+            .into_owned()
+    };
+
     // Ascertain the path to where bundles are written.
     let bundle_path = bundle_path.or(config.bundle_path).unwrap_or_else(|| {
         panic!("No bundle path provided, and either no configuration found or configuration has no 'bundle_path'");
@@ -277,10 +296,9 @@ pub(crate) fn process(input: TokenStream) -> TokenStream {
         (true, format!("{}.min.js", output_name)),
     ] {
         let output_path = format!("{bundle_path}/{output_name}");
-        let output = match cmd
-            .build_command(&options, minified, &entry_point, &output_path)
-            .output()
-        {
+        let mut command = cmd.build_command(&options, minified, &entry_point, &output_path);
+        command.current_dir(&working_dir);
+        let output = match command.output() {
             Ok(output) => output,
             Err(err) => {
                 panic!("Failed to run esbuild: {err:?}");
@@ -289,9 +307,12 @@ pub(crate) fn process(input: TokenStream) -> TokenStream {
 
         if !output.status.success() {
             panic!(
-                "failed to run esbuild: {}\n{}",
+                "failed to run esbuild: {}\n{}\n\nesbuild command: {:?}\ncurrent directory: {:?}\nwokring directory: {:?}",
                 std::str::from_utf8(&output.stderr).unwrap_or("unable to parse stderr as utf-8"),
-                std::str::from_utf8(&output.stdout).unwrap_or("unable to parse stdout as utf-8")
+                std::str::from_utf8(&output.stdout).unwrap_or("unable to parse stdout as utf-8"),
+                command,
+                std::env::current_dir().unwrap(),
+                working_dir
             );
         }
     }
