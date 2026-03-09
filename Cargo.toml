@@ -1,6 +1,6 @@
 [package]
 name = "esbuild-bundle"
-version = "0.3.3"
+version = "0.4.0"
 description = "A proc-macro to bundle JavaScript files using esbuild."
 authors = ["Blake Rain <blake.rain@blakerain.com>"]
 homepage = "https://git.blakerain.com/BlakeRain/esbuild-bundle"
@@ -14,7 +14,7 @@ proc-macro = true
 [dependencies]
 proc-macro2 = { version = "1.0" }
 quote = { version = "1.0" }
-rand = { version = "0.8", features = ["std"] }
+rand = { version = "0.10", features = ["std"] }
 shellexpand = { version = "3.1" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0" }

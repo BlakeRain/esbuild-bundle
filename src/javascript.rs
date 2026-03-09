@@ -2,7 +2,7 @@ use std::{collections::HashMap, path::PathBuf, process::Command};
 
 use proc_macro::TokenStream;
 use quote::quote;
-use rand::{distributions::Alphanumeric, Rng};
+use rand::{distr::Alphanumeric, RngExt};
 use serde::Deserialize;
 use syn::{parse::Parse, Token};
 
@@ -24,19 +24,18 @@ impl EsbuildOptions {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Default, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 enum EsbuildCommand {
-    Npm { script: String },
-    Pnpm { script: Option<String> },
+    Npm {
+        script: String,
+    },
+    Pnpm {
+        script: Option<String>,
+    },
+    #[default]
     Npx,
     Yarn,
-}
-
-impl Default for EsbuildCommand {
-    fn default() -> Self {
-        Self::Npx
-    }
 }
 
 impl EsbuildCommand {
@@ -279,7 +278,7 @@ pub(crate) fn process(input: TokenStream) -> TokenStream {
     let output_name = if let Some(existing) = bundles.get(&entry_point) {
         existing.clone()
     } else {
-        let output_name: String = rand::thread_rng()
+        let output_name: String = rand::rng()
             .sample_iter(&Alphanumeric)
             .take(32)
             .map(char::from)
